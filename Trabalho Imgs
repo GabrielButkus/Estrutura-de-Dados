@@ -1,0 +1,422 @@
+//
+//  main.c
+//  trabalhoImagens
+//
+//  Created by Gabriel on 06/08/2018.
+//  Copyright © 2018 marksoft ltda. All rights reserved.
+// ARQUIVOS PARA TESTE (COLE OS CAMINHOS AQUI):
+
+// FOX Films presents...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// In a cooperation with PQP softwares...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// How to get away with the social life of your students
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Origins
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define OVERFLOW      1
+#define UNDERFLOW     2
+#define OK            3
+#define INICIO        0
+#define ERROR       404
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+//STRUCT COM R, G & B DE UM PIXEL
+struct pixel{
+    unsigned char r, g, b;
+} typedef px;
+
+//STRUCT COM INFOS DA IMAGEM
+struct image{
+    char key[5];
+    char arcName[999];
+    int x, y, height, width, max;
+}typedef img;
+
+//STRUCTS DA PILHA
+struct coord{
+    int x;
+    int y;
+};
+typedef struct tipoCelula* Stack;
+
+struct tipoCelula{
+    struct coord c;
+    struct tipoCelula *next;
+};
+typedef struct tipoCelula celType;
+
+Stack *s;
+//Inicializa a pilha
+Stack* startStack(){
+    Stack* s = (Stack*)malloc(sizeof(Stack));
+    if(s != NULL)
+        *s = NULL;
+    return s;
+}
+
+//ESCOPO DAS FUNCOES (Os códigos das funções se encontram a partir da linha 160)
+void verifyType(FILE *fpointer, struct image *i);
+void scanDimensions(FILE *fpointer, struct image *i);
+void printMatrix(struct image img, int matriz[img.height][img.width]);
+void readImg(struct image img, FILE *imgPpm, struct pixel px[2], int matriz[img.height][img.width]);
+void countObjects(struct image img, int matriz[img.height][img.width]);
+int hasFlag(struct image img, int matriz[img.height][img.width]);
+void freeStack(Stack* s);
+int stackSize(Stack* s);
+int isEmpty (Stack* s);
+int Push(Stack* s, struct coord co);
+int Pop(Stack* s);
+int showTop(Stack* s, struct coord *co);
+int removeStack(Stack* s);
+//FIM ESCOPO DAS FUNCOES
+
+//INICIO FUNCAO MAIN
+int main(int argc, const char * argv[]) {
+    int aux = 0;
+    struct coord co;
+    struct pixel px[2];
+    struct image img;
+    FILE *imgPpm;
+    Stack *s;
+    s = startStack();
+
+    printf("Archive name:\n ");
+    gets(img.arcName);
+    imgPpm = fopen(img.arcName, "rb");
+
+    if(imgPpm == NULL){
+        printf("\nERROR WHILE OPENING THE ARCHIVE!\n");
+        fclose(imgPpm);
+        return 0;
+    }
+    verifyType(imgPpm, &img);   //VERIFICA SE IMAGEM É PPM
+    scanDimensions(imgPpm, &img);   //ESCANEIA DIMENSÕES E PIXEL MÁX
+    int matriz[img.height][img.width];   //MATRIZ PARA ARMAZENAR PIXELS
+    readImg(img, imgPpm, px, matriz);   //IMPLEMENTANDO LEITURA
+    printMatrix(img, matriz);    //IMPRIME MATRIZ
+    
+//    Eapaço livre para fazer o raciocínio da contagem de objetos:
+    for(int i = 0; i<img.height; i++){
+        for(int j = 0; j < img.width; j++){
+            if(matriz[i-1][j] == 1){
+                co.x = j;
+                co.y = i - 1;
+                Push(s, co);
+            }
+            if(matriz[i][j+1] == 1){
+                co.x = j + 1;
+                co.y = i;
+                Push(s, co);
+            }
+            if(matriz[i+1][j] == 1){
+                co.x = j;
+                co.y = i + 1;
+                Push(s, co);
+            }
+            if(matriz[i][j-1] == 1){
+                co.x = j - 1;
+                co.y = i;
+                Push(s, co);
+            }
+        }
+    }
+//    Fim espaço
+
+    
+//    printf("\n\nQuantidade de objetos: %d\n\n", aux);
+//    printf("\n\nMatriz modificada: \n\n");
+//    printMatrix(img, matriz);
+//    printf("\n\n");
+//    printf("\n");
+//    return 0;
+}
+//FIM FUNCAO MAIN
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//CONTA OBJETOS (PRIORIDADE MÁXIMA)
+void countObjects(struct image img, int matriz[img.height][img.width]){
+    //    Implementar código aqui (O MAIS RÁPIDO POSSÍVEL)
+}
+
+//VERIFICA TIPO DE ARQUIVO
+void verifyType(FILE *fpointer, struct image *i){
+    fscanf(fpointer, "%s", (*i).key);
+    if(strcmp((*i).key, "P6") != 0){
+        printf("THE ARCHIVE IS NOT IN PPM FORMAT!\n");
+        printf("%s", (*i).key);
+        fclose(fpointer);
+    }else{
+        printf("THE ARCHIVE IS IN PPM FORMAT!\n");
+    }
+}
+
+//ESCANEIA DIMENSOES E VALOR MAXIMO DE RGB (IMPRIME NO CONSOLE)
+void scanDimensions(FILE *fpointer, struct image *i){
+    fscanf(fpointer, "%d %d\n %d\n", &(*i).height, &(*i).width, &(*i).max);
+    printf("Image height: %d\n", (*i).height);
+    printf("Image width: %d\n", (*i).width);
+    printf("Max RGB value: %d\n", (*i).max);
+}
+
+//IMPRIME A MATRIZ BINARIZADA
+void printMatrix(struct image img, int matriz[img.height][img.width]){
+    if(img.height<=120 && img.width <=120){
+        for(int i=0; i<(img.height); i++){
+            for(int j=0; j<(img.width); j++){
+                if(j==(img.width-1)){
+                    printf("\n");
+                }
+                printf("%d", matriz[i][j]);
+            }
+        }
+    }else{
+        printf("\nImagem muito grande para ser mostrada no console!\n ");
+    }
+}
+
+//LE IMAGEM PIXEL A PIXEL E CRIA MATRIZ 'BINARIZADA'
+void readImg(struct image img, FILE *imgPpm, struct pixel px[2], int matriz[img.height][img.width]){
+    for(int i=0; i<(img.height); i++){
+        for(int j=0; j<(img.width); j++){
+            if(i==0 && j==0){
+                fscanf(imgPpm, "%c %c %c", &px[0].r, &px[0].g, &px[0].b);
+                matriz[i][j] = 0;
+            } else{
+                fscanf(imgPpm, "%c %c %c", &px[1].r, &px[1].g, &px[1].b);
+                if((int)px[1].r == (int)px[0].r && (int)px[1].g == (int)px[0].g && (int)px[1].b == (int)px[0].b){
+                    matriz[i][j] = 0;
+                }else{
+                    matriz[i][j] = 1;
+                }
+            }
+        }
+    }
+}
+
+//PILHA
+//Libera pilha
+void freeStack(Stack* s){
+    if(s != NULL){
+        celType* no;
+        while((*s) != NULL){
+            no = *s;
+            *s = (*s)->next;
+            free(no);
+        }
+        free(s);
+    }
+}
+//Retorna tamanho da pilha
+int stackSize(Stack* s){
+    if(s == NULL) return 0;
+    int cont = 0;
+    celType* no = *s;
+    while(s != NULL){
+        cont++;
+        no = no->next;
+    }
+    return cont;
+}
+//Verifica se a pilha está vazia
+int isEmpty (Stack* s){
+    if(s == NULL)
+        return 1;
+    if(*s == NULL)
+        return 1;
+    return 0;
+}
+//Insere elemento na pilha
+int Push(Stack* s, struct coord co){
+    if(s == NULL) return 0;
+    celType* no = (celType*)malloc(sizeof(celType));
+    if(no == NULL) return 0;
+    no->c = co;
+    no->next = (*s);
+    *s = no;
+    return 1;
+}
+//Remove elemento da pilha
+int Pop(Stack* s){
+    if(s == NULL) return 0;
+    if((*s) == NULL) return 0;
+    celType* no = *s;
+    *s = no->next;
+    free(no);
+    return 1;
+}
+//Mostra elemento no topo da pilha
+int showTop(Stack* s, struct coord *co){
+    if(s == NULL) return 0;
+    if((*s) == NULL) return 0;
+    *co = (*s)->c;
+    return 1;
+}
+//Remove pilha
+int removeStack(Stack* s){
+    if(s == NULL) return 0;
+    if((*s) == NULL) return 0;
+    celType *no = *s;
+    *s = no->next;
+    free(no);
+    return 1;
+}
+//FIM PILHA
+
+//VERIFIA SE OS OBJETOS JÁ FORAM ESCANEADOS
+int hasFlag(struct image img, int matriz[img.height][img.width]){
+    for(int y=0; y<img.height; y++){
+        for(int x=0; x<img.width; x++){
+            if(matriz[y][x] == 1){
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+
+
+
+
+
+
+
+
+// I'll be back...
+
